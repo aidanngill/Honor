@@ -12,9 +12,9 @@ defmodule Honor.Util.Reactions do
 
     if attachment != nil do
       put_image(embed, attachment.url)
+    else
+      embed
     end
-
-    embed
   end
 
   defp add_content(embed, nil), do: embed

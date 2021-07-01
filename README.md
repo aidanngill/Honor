@@ -23,8 +23,9 @@ export HONOR_DB_HOST="localhost"
 export HONOR_DB_PORT="5432"
 ```
 
-From here, you may then migrate the database.
+From here, you may then fetch dependencies and migrate the database.
 ```bash
+mix deps.get
 mix ecto.migrate
 ```
 

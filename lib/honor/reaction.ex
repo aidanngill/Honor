@@ -21,10 +21,12 @@ defmodule Honor.Reaction do
     guild = Repo.get_by(Guilds, guild: reaction.guild_id)
     message = Api.get_channel_message!(reaction.channel_id, reaction.message_id)
 
+    user = if reaction.user_id == nil do reaction.member.user.id else reaction.user_id end
+
     if guild do
       starred = Repo.get_by(Stars,
         message: reaction.message_id,
-        user: reaction.member.user.id
+        user: user
       )
 
       if starred == nil do
@@ -32,7 +34,7 @@ defmodule Honor.Reaction do
           guild: reaction.guild_id,
           channel: message.channel_id,
           message: reaction.message_id,
-          user: reaction.member.user.id
+          user: user
         }
       end
 
@@ -70,34 +72,32 @@ defmodule Honor.Reaction do
 
   def remove("⭐", reaction) do
     guild = Repo.get_by(Guilds, guild: reaction.guild_id)
-    message = Api.get_channel_message!(reaction.channel_id, reaction.message_id)
 
     if guild do
       entry = Repo.get_by(Stars,
         message: reaction.message_id,
-        user: message.author.id
+        user: if reaction.user_id == nil do reaction.member.user.id else reaction.user_id end
       )
 
       if entry != nil do
         Repo.delete!(entry)
+      end
 
-        query = from s in Stars,
-          where: s.guild == ^reaction.guild_id,
-          where: s.message == ^reaction.message_id,
+      query = from s in Stars,
+        where: s.guild == ^reaction.guild_id,
+        where: s.message == ^reaction.message_id,
 
-          select: {s.id}
+        select: {s.id}
 
-        stars = Repo.all(query)
-        post = Repo.get_by(Messages, message: reaction.message_id)
+      stars = Repo.all(query)
+      post = Repo.get_by(Messages, message: reaction.message_id)
 
-        if length(stars) >= guild.threshold do
-          Api.edit_message(
-            guild.channel, post.pin,
-            content: ":star: #{length(stars)} in <##{reaction.channel_id}>"
-          )
-        else
-          Api.delete_message!(guild.channel, post.pin)
-        end
+      if length(stars) >= guild.threshold do
+        content = ":star: #{length(stars)} in <##{reaction.channel_id}>"
+        Api.edit_message(guild.channel, post.pin, content: content)
+      else
+        Api.delete_message!(guild.channel, post.pin)
+        Repo.delete!(post)
       end
     end
   end
