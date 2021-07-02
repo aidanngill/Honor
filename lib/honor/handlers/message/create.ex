@@ -1,40 +1,15 @@
-defmodule Honor.Command do
+defmodule Honor.Handler.Message.Create do
   @prefix ">"
 
+  import Nostrum.Struct.Embed
+
   alias Nostrum.Api
+  alias Nostrum.Cache.Me
 
-  alias Nostrum.Cache.GuildCache
-  alias Nostrum.Cache.ChannelCache
-  alias Nostrum.Struct.Guild.Member
-
-  alias Honor.{
-    Guilds,
-    Repo
-  }
-
-  defp context_from_argument(value) do
-    [_full_match, raw_id] = Regex.run(~r/<#(\d+)>/, value)
-    {id, ""} = Integer.parse(raw_id, 10)
-
-    channel = ChannelCache.get!(id)
-
-    {:ok, GuildCache.get!(channel.guild_id), channel}
-  end
-
-  defp has_permissions(message, permissions) do
-    guild = GuildCache.get!(message.guild_id)
-    member = Map.get(guild.members, message.author.id)
-    member_permissions = Member.guild_permissions(member, guild)
-
-    Enum.all? permissions, fn x -> x in member_permissions end
-  end
-
-  defp is_command?(msg) do
-    String.starts_with?(msg.content, @prefix)
-  end
+  alias Honor.{Guilds, Repo, Util}
 
   def handle(msg) do
-    if is_command?(msg) do
+    if Util.Message.is_command?(@prefix, msg) do
       msg.content
       |> String.trim()
       |> String.downcase()
@@ -49,8 +24,8 @@ defmodule Honor.Command do
   end
 
   def execute(["channel", value], msg) do
-    if has_permissions(msg, [:manage_channels]) do
-      {:ok, guild, channel} = context_from_argument(value)
+    if Util.Message.has_permissions(msg, [:manage_channels]) do
+      {:ok, guild, channel} = Util.Message.context_from_argument(value)
 
       if channel.guild_id == guild.id do
         result =
@@ -82,12 +57,12 @@ defmodule Honor.Command do
 
     Api.create_message(
       msg.channel_id,
-      "#{threshold} star reacts are required to pin a message here."
+      "#{threshold} reactions are required to pin a message in this server."
     )
   end
 
   def execute(["threshold", value], msg) do
-    if has_permissions(msg, [:manage_channels]) do
+    if Util.Message.has_permissions(msg, [:manage_channels]) do
       {new_value, ""} = Integer.parse(String.replace(value, ~r/[^\d]/, ""), 10)
 
       if new_value >= 1 do
@@ -102,7 +77,7 @@ defmodule Honor.Command do
         case result do
           {:ok, _struct} -> Api.create_message(
             msg.channel_id,
-            "Updated the threshold successfully."
+            "Updated the threshold for this server to **#{new_value}**."
           )
 
           {:error, _changeset} -> Api.create_message(
@@ -113,18 +88,50 @@ defmodule Honor.Command do
       else
         Api.create_message(
           msg.channel_id,
-          "Please enter a number above zero!"
+          "Please enter a number above zero."
         )
       end
     end
   end
 
-  def execute(["invite"], _msg) do
-    :noop
+  def execute(["random"], msg) do
+    post = msg.guild_id
+    |> Util.Message.unique_stars
+    |> Enum.random
+
+    if post != nil do
+      case Api.get_channel_message(post.channel, post.message) do
+        nil ->
+          Api.create_message(msg.channel_id, "The message I found was deleted.")
+
+        {:ok, message} ->
+          url = Util.Reaction.create_message_link(post.guild, message)
+          channel = Api.get_channel!(post.channel)
+
+          embed = %Nostrum.Struct.Embed{}
+          |> put_author(
+              "#{message.author.username}##{message.author.discriminator}", nil,
+              Nostrum.Struct.User.avatar_url(message.author)
+            )
+          |> put_description("[Click here!](#{url})")
+          |> put_footer("##{channel.name}")
+          |> put_timestamp(message.timestamp)
+          
+          Api.create_message(msg.channel_id, embed: embed)
+      end
+    else
+      Api.create_message(msg.channel_id, "This server doesn't have any pins yet.")
+    end
   end
 
-  def execute(["random"], _msg) do
-    :noop
+  def execute(["invite"], msg) do
+    invite_url = "https://discord.com/api/oauth2/authorize?client_id=#{Me.get().id()}&permissions=388176&scope=bot"
+
+    embed = %Nostrum.Struct.Embed{}
+    |> put_description("You can invite me to your own server by clicking the link below.")
+    |> put_field("Invite", "[Click here!](#{invite_url})")
+
+    Api.create_message(msg.channel_id, embed: embed)
   end
 
   def execute(_any, _msg) do
