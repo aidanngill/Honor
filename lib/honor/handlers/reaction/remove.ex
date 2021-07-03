@@ -30,12 +30,18 @@ defmodule Honor.Handler.Reaction.Remove do
       stars = Repo.all(query)
       post = Repo.get_by(Messages, message: reaction.message_id)
 
-      if length(stars) >= guild.threshold do
-        content = ":star: #{length(stars)} in <##{reaction.channel_id}>"
-        Api.edit_message(guild.channel, post.pin, content: content)
-      else
-        Api.delete_message!(guild.channel, post.pin)
-        Repo.delete!(post)
+      case post do
+        nil ->
+          :ignore
+
+        post when length(stars) >= guild.threshold ->
+          content = ":star: #{length(stars)} in <##{reaction.channel_id}>"
+          Api.edit_message(guild.channel, post.pin, content: content)
+        
+        _ ->
+          Api.delete_message!(guild.channel, post.pin)
+          Repo.delete!(post)
+
       end
     end
   end

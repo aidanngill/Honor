@@ -9,7 +9,6 @@ defmodule Honor.Handler.Reaction.Add do
   alias Honor.Messages
 
   alias Honor.Util
-  alias Honor.Util.Reaction
 
   def handle(reaction) do
     execute(reaction.emoji.name, reaction)
@@ -49,7 +48,7 @@ defmodule Honor.Handler.Reaction.Add do
         content = ":star: #{length(stars)} in <##{reaction.channel_id}>"
 
         if post == nil do
-          embed = Reaction.create_embed(reaction.guild_id, message)
+          embed = Util.Reaction.create_embed(reaction.guild_id, message)
           pin_message = Api.create_message!(guild.channel, content: content, embed: embed)
 
           Repo.insert %Messages{
