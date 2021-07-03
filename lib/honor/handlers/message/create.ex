@@ -77,7 +77,7 @@ defmodule Honor.Handler.Message.Create do
         case result do
           {:ok, _struct} -> Api.create_message(
             msg.channel_id,
-            "Updated the threshold for this server to **#{new_value}**."
+            "Updated the threshold for this server to **#{new_value} reactions**."
           )
 
           {:error, _changeset} -> Api.create_message(
@@ -101,7 +101,7 @@ defmodule Honor.Handler.Message.Create do
 
     if post != nil do
       case Api.get_channel_message(post.channel, post.message) do
-        nil ->
+        Nostrum.Error.ApiError ->
           Api.create_message(msg.channel_id, "The message I found was deleted.")
 
         {:ok, message} ->
@@ -127,7 +127,7 @@ defmodule Honor.Handler.Message.Create do
   def execute(["invite"], msg) do
     query = URI.encode_query(%{
       client_id: Me.get().id(),
-      permissions: 38817,
+      permissions: 84992,
       scope: "bot"
     })
 

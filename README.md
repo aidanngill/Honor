@@ -1,5 +1,5 @@
 # Honor
-Discord bot project made to learn Elixir. Constant work in progress considering this is my first Elixir program ever. The bot will save a message to the channel you set, given that it receives enough star reacts. You may invite the bot [here](https://discord.com/api/oauth2/authorize?client_id=859516226031452180&permissions=388176&scope=bot), although uptime is not guaranteed.
+Discord bot project made to learn Elixir. Constant work in progress considering this is my first Elixir program ever. The bot will save a message to the channel you set, given that it receives enough star reacts. You may invite the bot [here](https://discord.com/api/oauth2/authorize?client_id=859516226031452180&permissions=84992&scope=bot), although uptime is not guaranteed.
 
 ## Requirements
 * Elixir (1.12)
