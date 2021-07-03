@@ -125,11 +125,21 @@ defmodule Honor.Handler.Message.Create do
   end
 
   def execute(["invite"], msg) do
-    invite_url = "https://discord.com/api/oauth2/authorize?client_id=#{Me.get().id()}&permissions=388176&scope=bot"
+    query = URI.encode_query(%{
+      client_id: Me.get().id(),
+      permissions: 38817,
+      scope: "bot"
+    })
+
+    url_string =
+      "https://discord.com/api/oauth2/authorize"
+      |> URI.parse()
+      |> Map.put(:query, query)
+      |> URI.to_string()
 
     embed = %Nostrum.Struct.Embed{}
     |> put_description("You can invite me to your own server by clicking the link below.")
-    |> put_field("Invite", "[Click here!](#{invite_url})")
+    |> put_field("Invite", "[Click here!](#{url_string})")
 
     Api.create_message(msg.channel_id, embed: embed)
   end
