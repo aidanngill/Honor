@@ -63,33 +63,41 @@ defmodule Honor.Handler.Message.Create do
 
   def execute(["threshold", value], msg) do
     if Util.Message.has_permissions(msg, [:manage_channels]) do
-      {new_value, ""} = Integer.parse(String.replace(value, ~r/[^\d]/, ""), 10)
+      amount = value
+      |> String.replace(~r/[^\d]/, "")
+      |> Integer.parse(10)
 
-      if new_value >= 1 do
-        result =
-          case Repo.get_by(Guilds, guild: msg.guild_id) do
-            nil -> %Guilds{guild: msg.guild_id}
-            guild -> guild
-          end
-          |> Guilds.changeset(%{threshold: new_value})
-          |> Repo.insert_or_update
+      case amount do
+        :error ->
+          Api.create_message(msg.channel_id, "Please enter a valid number.")
         
-        case result do
-          {:ok, _struct} -> Api.create_message(
-            msg.channel_id,
-            "Updated the threshold for this server to **#{new_value} reactions**."
-          )
+        {new_value, _extra} when new_value > 0 ->
+          result =
+            case Repo.get_by(Guilds, guild: msg.guild_id) do
+              nil -> %Guilds{guild: msg.guild_id}
+              guild -> guild
+            end
+            |> Guilds.changeset(%{threshold: new_value})
+            |> Repo.insert_or_update
+          
+          case result do
+            {:ok, _struct} ->
+              Api.create_message(
+                msg.channel_id,
+                "Updated the threshold for this server to **#{new_value} reactions**."
+              )
+  
+            {:error, _changeset} ->
+              Api.create_message(
+                msg.channel_id,
+                "Unknown error occured while updating threshold."
+              )
 
-          {:error, _changeset} -> Api.create_message(
-            msg.channel_id,
-            "Unknown error occured while updating threshold."
-          )
-        end
-      else
-        Api.create_message(
-          msg.channel_id,
-          "Please enter a number above zero."
-        )
+          end
+        
+        _ ->
+          Api.create_message(msg.channel_id, "Please enter a valid number above zero.")
+
       end
     end
   end
