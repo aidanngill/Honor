@@ -35,7 +35,7 @@ defmodule Honor.Handler.Message.Create do
           end
           |> Guilds.changeset(%{channel: channel.id})
           |> Repo.insert_or_update
-        
+
         case result do
           {:ok, _struct} -> Api.create_message(
             ctx.channel_id,
@@ -46,6 +46,7 @@ defmodule Honor.Handler.Message.Create do
             ctx.channel_id,
             "Failed to update the pin channel."
           )
+
         end
       end
     end
@@ -70,7 +71,7 @@ defmodule Honor.Handler.Message.Create do
       case amount do
         :error ->
           Api.create_message(ctx.channel_id, "Please enter a valid number.")
-        
+
         {new_value, _extra} when new_value > 0 ->
           result =
             case Repo.get_by(Guilds, guild: ctx.guild_id) do
@@ -79,14 +80,14 @@ defmodule Honor.Handler.Message.Create do
             end
             |> Guilds.changeset(%{threshold: new_value})
             |> Repo.insert_or_update
-          
+
           case result do
             {:ok, _struct} ->
               Api.create_message(
                 ctx.channel_id,
                 "Updated the threshold for this server to **#{new_value} reactions**."
               )
-  
+
             {:error, _changeset} ->
               Api.create_message(
                 ctx.channel_id,
@@ -94,7 +95,7 @@ defmodule Honor.Handler.Message.Create do
               )
 
           end
-        
+
         _ ->
           Api.create_message(ctx.channel_id, "Please enter a valid number above zero.")
 
@@ -103,13 +104,14 @@ defmodule Honor.Handler.Message.Create do
   end
 
   def execute(["random"], ctx) do
-    post = ctx.guild_id
+    posts = ctx.guild_id
     |> Util.Message.unique_stars
-    |> Enum.random
 
-    if post != nil do
+    if posts != nil and length(posts) > 0 do
+      post = Enum.random(posts)
+
       case Api.get_channel_message(post.channel, post.message) do
-        Nostrum.Error.ApiError ->
+        {:error, _extra} ->
           Api.create_message(ctx.channel_id, "The message I found was deleted.")
 
         {:ok, message} ->
@@ -124,7 +126,7 @@ defmodule Honor.Handler.Message.Create do
           |> put_description("[Click here!](#{url})")
           |> put_footer("##{channel.name}")
           |> put_timestamp(message.timestamp)
-          
+
           Api.create_message(ctx.channel_id, embed: embed)
       end
     else

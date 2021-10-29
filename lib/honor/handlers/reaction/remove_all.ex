@@ -12,13 +12,13 @@ defmodule Honor.Handler.Reaction.RemoveAll do
     post = Repo.get_by(Messages, message: data.message_id)
 
     if post != nil do
-      guild = Repo.get_by!(Guilds, guild: data.guild_id)
+      Repo.get_by!(Guilds, guild: data.guild_id)
+      |> Api.delete_message!(post.pin)
 
       Stars
       |> where(message: ^data.message_id)
       |> Repo.delete_all
 
-      Api.delete_message!(guild.channel, post.pin)
       Repo.delete!(post)
     end
   end

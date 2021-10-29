@@ -27,3 +27,4 @@ honor-*.tar
 
 # Custom
 .env
+volumes/
